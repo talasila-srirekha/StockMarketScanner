@@ -4,9 +4,17 @@ on:
   workflow_dispatch:
 
   schedule:
-    # Runs every weekday at 9:00 PM UTC
-    # Adjust based on your market/session
-    - cron: '0 21 * * 1-5'
+    # 7 AM Singapore = 11 PM UTC previous day
+    - cron: '0 23 * * *'
+
+    # 5 PM Singapore = 9 AM UTC
+    - cron: '0 9 * * *'
+
+    # 7 PM Singapore = 11 AM UTC
+    - cron: '0 11 * * *'
+
+    # 9 PM Singapore = 1 PM UTC
+    - cron: '0 13 * * *'
 
 jobs:
   scan:

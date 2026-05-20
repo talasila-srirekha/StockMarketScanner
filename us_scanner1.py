@@ -184,6 +184,17 @@ def run_volatility_analysis():
         telegram_message += "``` \n"
         telegram_message += results.to_string(index=False)
         telegram_message += "\n```"
+        
+        telegram_message = "🔥 <b>S&P 500 Momentum Alerts</b> 🔥\n\n"
+
+        for _, row in results.iterrows():
+            telegram_message += (
+                f"🟢 <b>{row['Ticker']}</b>\n"
+                f"Entry: ${row['Entry ($)']}\n"
+                f"SL: ${row['Stop Loss ($)']}\n"
+                f"Target: ${row['Target ($)']}\n"
+                f"Volume Surge: {row['Vol Chg 10d (%)']}\n\n"
+            )
 
         BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
         CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
@@ -210,7 +221,7 @@ def send_telegram_message(message, bot_token, chat_id):
     payload = {
         "chat_id": chat_id,
         "text": message,
-        "parse_mode": "Markdown"
+        "parse_mode": "HTML"
     }
     response = requests.post(url, json=payload)
     return response.json()
