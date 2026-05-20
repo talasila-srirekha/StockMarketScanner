@@ -5,6 +5,7 @@ import warnings
 import time
 import logging
 from io import StringIO
+import os
 
 # --- CLEAN TERMINAL SETTINGS ---
 warnings.filterwarnings('ignore')
@@ -179,9 +180,40 @@ def run_volatility_analysis():
         print("\n🔥 S&P 500 TRADE ANALYSIS & MOMENTUM ALERTS: 🔥\n")
         # Format pandas to print nicely
         print(results.to_string(index=False, justify='center'))
+        telegram_message = "🔥 *S&P 500 Momentum Alerts* 🔥\n\n"
+        telegram_message += "``` \n"
+        telegram_message += results.to_string(index=False)
+        telegram_message += "\n```"
+
+        BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+        CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+
+        send_telegram_message(telegram_message,BOT_TOKEN,CHAT_ID)
+
     else:
+        telegram_message = "🔥 *S&P 500 Momentum Alerts* 🔥\n\n"
+        telegram_message += "``` \n"
+        telegram_message += "Market Setup Alert: No S&P 500 stocks matched this specific setup today."
+        telegram_message += "\n```"
+
+        BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+        CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+
+        send_telegram_message(telegram_message,BOT_TOKEN,CHAT_ID)
+
         print("\n😴 Market Setup Alert: No S&P 500 stocks matched this specific setup today.")
     print("="*85)
+
+def send_telegram_message(message, bot_token, chat_id):
+
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": message,
+        "parse_mode": "Markdown"
+    }
+    response = requests.post(url, json=payload)
+    return response.json()
 
 if __name__ == "__main__":
     run_volatility_analysis()

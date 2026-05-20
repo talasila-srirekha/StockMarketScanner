@@ -27,5 +27,8 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run US Scanner 1
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           python us_scanner1.py
