@@ -4,6 +4,7 @@ import requests
 import warnings
 import time
 import logging
+from io import StringIO
 
 # --- CLEAN TERMINAL SETTINGS ---
 warnings.filterwarnings('ignore')
@@ -23,7 +24,7 @@ def get_sp500_tickers():
         response = requests.get(url, headers=headers)
         response.raise_for_status()
 
-        tables = pd.read_html(response.text)
+        tables = pd.read_html(StringIO(response.text))
         for table in tables:
             if 'Symbol' in table.columns:
                 tickers = [str(sym).replace('.', '-') for sym in table['Symbol'].tolist()]
