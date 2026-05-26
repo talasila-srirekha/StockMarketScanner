@@ -143,8 +143,8 @@ def run_volatility_analysis():
                 cond6 = latest['Low'] > threshold
                 if not cond6: continue
 
-                # --- FILTER 7: Momentum (RSI > 60) ---
-                cond7 = latest['RSI'] > 60
+                # --- FILTER 7: Momentum (RSI > 40) ---
+                cond7 = latest['RSI'] > 40
                 if not cond7: continue
 
                 # ==========================================
