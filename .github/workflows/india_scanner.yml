@@ -25,7 +25,7 @@ jobs:
 
       - name: Run India Scanner with RSA
         env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.INDIAN_TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.INDIAN_TELEGRAM_CHAT_ID }}
+          INDIAN_TELEGRAM_BOT_TOKEN: ${{ secrets.INDIAN_TELEGRAM_BOT_TOKEN }}
+          INDIAN_TELEGRAM_CHAT_ID: ${{ secrets.INDIAN_TELEGRAM_CHAT_ID }}
         run: |
           python india_scannner_with_RSI.py
