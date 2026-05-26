@@ -187,7 +187,7 @@ def run_volatility_analysis():
                     'Vol Chg 10d (%)': f"{round(vol_change_pct, 1)}%"
                 })
 
-            # ---> THIS IS THE MISSING BLOCK THAT CAUSED YOUR ERROR <---
+            # ---> THIS IS THE MISSING BLOCK THAT FIXES YOUR ERROR <---
             except Exception:
                 continue
 
