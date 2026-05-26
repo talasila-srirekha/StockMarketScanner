@@ -127,3 +127,137 @@ def run_volatility_analysis():
                 current_iso_year = latest_date.isocalendar()[0]
 
                 month_df = df[(df.index.year == current_year) & (df.index.month == current_month)]
+                if month_df.empty: continue
+                monthly_open = month_df.iloc[0]['Open']
+
+                week_df = df[(df.index.isocalendar().year == current_iso_year) & (df.index.isocalendar().week == current_iso_week)]
+                if week_df.empty: continue
+                weekly_open = week_df.iloc[0]['Open']
+
+                # --- FILTER 3 & 4: Bullish Week & Month ---
+                cond3 = latest['Close'] > weekly_open
+                cond4 = latest['Close'] > monthly_open
+                if not (cond3 and cond4): continue
+
+                # --- FILTER 5: Minimum Liquidity (Adjusted to ₹5 Crore for Nifty 500) ---
+                turnover_inr = latest['Volume'] * latest['Close']
+                cond5 = turnover_inr >= 50000000
+                if not cond5: continue
+
+                # --- FILTER 6: Strong Support Hold ---
+                threshold = prev_1['Close'] - abs(prev_1['Close'] / 222)
+                cond6 = latest['Low'] > threshold
+                if not cond6: continue
+
+                # --- FILTER 7: Momentum (RSI > 40) ---
+                cond7 = latest['RSI'] > 40
+                if not cond7: continue
+
+                # ==========================================
+                # 📈 TRADE MANAGEMENT & PATTERN ANALYSIS
+                # ==========================================
+
+                # Volume Analysis (vs 10-Day Average)
+                avg_vol_10d = df['Volume'].iloc[-10:].mean()
+                vol_change_pct = ((latest['Volume'] / avg_vol_10d) - 1) * 100
+
+                # Entry, Stop Loss, and Target (1:2 Risk/Reward)
+                entry_price = latest['Close']
+
+                # Stop loss placed slightly below today's low to avoid wicks
+                stop_loss = latest['Low'] * 0.998
+
+                # Calculate risk. Fallback to 1% risk if Low == Close (very rare)
+                risk_amount = max(entry_price - stop_loss, entry_price * 0.01)
+
+                # Project Target at 2x Risk
+                target_price = entry_price + (risk_amount * 2)
+
+                # Format Data for Output (Stripping .NS for cleaner visual lists)
+                clean_ticker = ticker.replace('.NS', '')
+
+                matched_stocks.append({
+                    'Ticker': clean_ticker,
+                    'Pattern': 'Range Breakout',
+                    'RSI': round(latest['RSI'], 2),
+                    'Entry (₹)': round(entry_price, 2),
+                    'Stop Loss (₹)': round(stop_loss, 2),
+                    'Target (₹)': round(target_price, 2),
+                    'Cur Vol (M)': round(latest['Volume'] / 1000000, 2),
+                    'Vol Chg 10d (%)': f"{round(vol_change_pct, 1)}%"
+                })
+
+            # ---> THIS IS THE MISSING BLOCK THAT CAUSED YOUR ERROR <---
+            except Exception:
+                continue
+
+        time.sleep(1)
+
+    # --- FINAL REPORT GENERATION ---
+    runtime = round((time.time() - start_time), 1)
+
+    print(" " * 60, end="\r") # Clear loading line
+    print("\n" + "="*85)
+    print(f"🏁 SCAN COMPLETE — Processed in {runtime} seconds.")
+    print("="*85)
+
+    if matched_stocks:
+        results = pd.DataFrame(matched_stocks)
+        # Sort by the most massive volume surges
+        results['Sort_Vol'] = results['Vol Chg 10d (%)'].str.replace('%', '').astype(float)
+        results = results.sort_values(by="Sort_Vol", ascending=False).drop('Sort_Vol', axis=1)
+
+        print("\n🔥 NIFTY 500 TRADE ANALYSIS & MOMENTUM ALERTS: 🔥\n")
+        # Format pandas to print nicely in terminal
+        print(results.to_string(index=False, justify='center'))
+
+        # --- TELEGRAM FORMATTING ---
+        telegram_message = "🔥 <b>NIFTY 500 Momentum Alerts</b> 🔥\n\n"
+
+        for _, row in results.iterrows():
+            telegram_message += (
+                f"🟢 <b>{row['Ticker']}</b> ({row['Pattern']})\n"
+                f"RSI: {row['RSI']}\n"
+                f"Entry: ₹{row['Entry (₹)']}\n"
+                f"SL: ₹{row['Stop Loss (₹)']}\n"
+                f"Target: ₹{row['Target (₹)']}\n"
+                f"Cur Vol: {row['Cur Vol (M)']}M\n"
+                f"Vol Surge: {row['Vol Chg 10d (%)']}\n\n"
+            )
+
+        BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+        CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+
+        if BOT_TOKEN and CHAT_ID:
+            send_telegram_message(telegram_message, BOT_TOKEN, CHAT_ID)
+        else:
+            print("\n⚠️ Note: Telegram credentials not found in environment variables. Message not sent.")
+
+    else:
+        telegram_message = "🔥 <b>NIFTY 500 Momentum Alerts</b> 🔥\n\n"
+        telegram_message += "Market Setup Alert: No Indian stocks matched this specific setup today."
+
+        BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+        CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+
+        if BOT_TOKEN and CHAT_ID:
+            send_telegram_message(telegram_message, BOT_TOKEN, CHAT_ID)
+
+        print("\n😴 Market Setup Alert: No Indian stocks matched this specific setup today.")
+    print("="*85)
+
+def send_telegram_message(message, bot_token, chat_id):
+    url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": message,
+        "parse_mode": "HTML"
+    }
+    try:
+        response = requests.post(url, json=payload)
+        return response.json()
+    except Exception as e:
+        print(f"Error sending to telegram: {e}")
+
+if __name__ == "__main__":
+    run_volatility_analysis()
