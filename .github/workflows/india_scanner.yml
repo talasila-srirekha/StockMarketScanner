@@ -1,4 +1,4 @@
-name: SP500 Momentum Scanner
+name: NIFTY Momentum Scanner
 
 on:
   workflow_dispatch:
@@ -23,9 +23,9 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run US Scanner with RSA
+      - name: Run India Scanner with RSA
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          python us_scanner_with_RSI.py
+          python india_scannner_with_RSI.py
