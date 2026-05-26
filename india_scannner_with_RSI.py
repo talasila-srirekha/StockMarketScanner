@@ -237,8 +237,8 @@ def run_volatility_analysis():
         telegram_message = "🔥 <b>NIFTY 500 Momentum Alerts</b> 🔥\n\n"
         telegram_message += "Market Setup Alert: No Indian stocks matched this specific setup today."
 
-        BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-        CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+        BOT_TOKEN = os.getenv("INDIAN_TELEGRAM_BOT_TOKEN")
+        CHAT_ID = os.getenv("INDIAN_TELEGRAM_CHAT_ID")
 
         if BOT_TOKEN and CHAT_ID:
             send_telegram_message(telegram_message, BOT_TOKEN, CHAT_ID)
