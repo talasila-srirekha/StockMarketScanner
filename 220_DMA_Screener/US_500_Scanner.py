@@ -20,24 +20,32 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 # ==========================================
 
-def get_nifty500_tickers():
+def get_sp500_tickers():
     """
-    Fetches the NIFTY 500 list directly from the NSE website.
+    Fetches the current S&P 500 list from Wikipedia.
+    Cleans up tickers for Yahoo Finance compatibility (e.g., BRK.B -> BRK-B).
     """
-    url = "https://archives.nseindia.com/content/indices/ind_nifty500list.csv"
+    url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-        'Accept': 'text/csv'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     }
+    
     try:
         response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
-        df = pd.read_csv(io.StringIO(response.text))
-        return [str(symbol) + ".NS" for symbol in df['Symbol']]
+        
+        # Read the first table on the Wikipedia page
+        tables = pd.read_html(io.StringIO(response.text))
+        df = tables[0]
+        
+        # Extract symbols and fix dot notation for Yahoo Finance
+        tickers = df['Symbol'].str.replace('.', '-', regex=False).tolist()
+        return tickers
+        
     except Exception as e:
-        print(f"Warning: NSE Website blocked automated ticker download ({e}).")
-        return ["RELIANCE.NS", "TCS.NS", "INFY.NS", "HDFCBANK.NS", "ICICIBANK.NS", 
-                "SBI.NS", "ITC.NS", "LARSEN.NS", "BAJFINANCE.NS", "BHARTIARTL.NS", "MGL.NS"]
+        print(f"Warning: Could not fetch S&P 500 list from Wikipedia ({e}).")
+        print("Falling back to a standard mega-cap sample list.")
+        return ["AAPL", "MSFT", "GOOGL", "AMZN", "META", "TSLA", "NVDA", "BRK-B", "JPM", "V"]
 
 def process_batch(batch_tickers, batch_num, start_date, end_date):
     """
@@ -86,9 +94,9 @@ def process_batch(batch_tickers, batch_num, start_date, end_date):
                 curr_rsi = round(float(data['RSI'].iloc[-1]), 1)
                 
                 batch_results.append({
-                    'Stock': ticker.replace('.NS', ''),
+                    'Stock': ticker,  # No .NS to remove here!
                     'Cross Date': date_crossed,
-                    'Current Price': round(curr_close, 2),
+                    'Price ($)': round(curr_close, 2), # Updated to USD
                     'Vol %': vol_pct,
                     'RSI': curr_rsi
                 })
@@ -107,8 +115,8 @@ def send_telegram_message(df):
         return
 
     # Use 'simple' format for Telegram as it renders best on mobile devices
-    table_string = tabulate(df, headers='keys', tablefmt='simple', showindex=True)
-    message_text = f"<b>🚨 NIFTY 500: 220-DMA Crossovers (Last 3 Days)</b>\n\n<pre>{table_string}</pre>"
+    table_string = tabulate(df, headers='keys', tablefmt='simple', showindex=False)
+    message_text = f"<b>🚨 S&P 500: 220-DMA Crossovers (Last 3 Days)</b>\n\n<pre>{table_string}</pre>"
     
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
@@ -125,8 +133,8 @@ def send_telegram_message(df):
         print(f"❌ Failed to send Telegram message: {e}")
 
 def main():
-    tickers = get_nifty500_tickers()
-    output_filename = "nifty500_batch_crossover_3day.csv"
+    tickers = get_sp500_tickers()
+    output_filename = "sp500_batch_crossover_3day.csv"
     
     if os.path.exists(output_filename):
         os.remove(output_filename)
@@ -152,6 +160,7 @@ def main():
         else:
             print(f"-> No matches found in Batch {batch_num}.")
             
+        # Optional: Short cooldown to avoid rate limits
         if i + batch_size < len(tickers):
             time.sleep(3)
             
@@ -165,7 +174,7 @@ def main():
         # Save to CSV
         final_df.to_csv(output_filename)
         
-        # --- NEW: Print beautifully formatted table to the console ---
+        # Print beautifully formatted table to the console
         print("\n" + tabulate(final_df, headers='keys', tablefmt='pretty', showindex=True) + "\n")
         print(f"💾 Scan Complete! Data saved to '{output_filename}'")
         
@@ -176,7 +185,7 @@ def main():
         
         # Optional: Send a message even if no stocks were found
         if ENABLE_TELEGRAM and TELEGRAM_BOT_TOKEN != "YOUR_BOT_TOKEN_HERE":
-            empty_msg = "<b>📊 NIFTY 500 Scan Complete</b>\nNo stocks crossed their 220-DMA in the last 3 days."
+            empty_msg = "<b>📊 S&P 500 Scan Complete</b>\nNo stocks crossed their 220-DMA in the last 3 days."
             requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage", 
                           data={'chat_id': TELEGRAM_CHAT_ID, 'text': empty_msg, 'parse_mode': 'HTML'})
 
