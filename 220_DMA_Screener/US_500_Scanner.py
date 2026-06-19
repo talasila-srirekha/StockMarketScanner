@@ -194,11 +194,10 @@ def main():
     all_results = []
     batch_size = 50
     # Define the IST timezone (UTC + 5 hours and 30 minutes)
-    ist_timezone = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
-
+    # ist_timezone = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
     # Get today's date in exactly IST, then add 1 day
-    end_date = datetime.datetime.now(ist_timezone).date() + datetime.timedelta(days=1)
-    #end_date = datetime.date.today()
+    # end_date = datetime.datetime.now(ist_timezone).date() + datetime.timedelta(days=1)
+    end_date = datetime.date.today()
     start_date = end_date - datetime.timedelta(days=600) 
     
     print(f"Total Tickers Found: {len(tickers)}")
