@@ -106,7 +106,7 @@ def process_batch(batch_tickers, batch_num, start_date, end_date):
             
     return batch_results
 
-def send_telegram_message(df):
+def old_send_telegram_message(df):
     """
     Formats the DataFrame as an ASCII table and sends it to Telegram.
     """
@@ -131,6 +131,58 @@ def send_telegram_message(df):
         print("✅ Results successfully sent to Telegram!")
     except Exception as e:
         print(f"❌ Failed to send Telegram message: {e}")
+        
+
+def send_telegram_message(df):
+    """
+    Formats the DataFrame as an ASCII table with strict word-wrapping for Telegram.
+    """
+    if not ENABLE_TELEGRAM or TELEGRAM_BOT_TOKEN == "YOUR_BOT_TOKEN_HERE":
+        print("-> Telegram alerts disabled or credentials missing. Skipping message.")
+        return
+
+    # --- 1. Create a mobile-friendly copy of the DataFrame ---
+    mobile_df = df.copy()
+    
+    # Compress the Date (Drop the Year: "2026-06-18" -> "06-18")
+    mobile_df['Cross Date'] = pd.to_datetime(mobile_df['Cross Date']).dt.strftime('%m-%d')
+    
+    # Rename columns to be as short as possible to save horizontal space
+    mobile_df.rename(columns={
+        'Stock': 'Stock',
+        'Cross Date': 'Date', 
+        'Price': 'Price',
+        'Vol %': 'Vol%',
+        'RSI': 'RSI'
+    }, inplace=True)
+
+    # --- 2. Apply Strict Word Wrapping ---
+    # maxcolwidths forces long text to wrap to the next line instead of pushing columns off-screen.
+    # We restrict the 'Stock' column to a maximum of 10 characters before it wraps.
+    table_string = tabulate(
+        mobile_df, 
+        headers='keys', 
+        tablefmt='simple', 
+        showindex=False,
+        disable_numparse=True,
+        maxcolwidths=[10, 5, 7, 5, 4] # Maximum characters allowed per column
+    )
+    
+    message_text = f"<b>🚨 NIFTY 500: 220-DMA (Last 3 Days)</b>\n\n<pre>{table_string}</pre>"
+    
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        'chat_id': TELEGRAM_CHAT_ID,
+        'text': message_text,
+        'parse_mode': 'HTML'
+    }
+    
+    try:
+        response = requests.post(url, data=payload)
+        response.raise_for_status()
+        print("✅ Results successfully sent to Telegram!")
+    except Exception as e:
+        print(f"❌ Failed to send Telegram message: {e}")
 
 def main():
     tickers = get_sp500_tickers()
@@ -141,7 +193,11 @@ def main():
         
     all_results = []
     batch_size = 50
-    end_date = datetime.date.today() + datetime.timedelta(days=1)
+    # Define the IST timezone (UTC + 5 hours and 30 minutes)
+    ist_timezone = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+
+    # Get today's date in exactly IST, then add 1 day
+    end_date = datetime.datetime.now(ist_timezone).date() + datetime.timedelta(days=1)
     #end_date = datetime.date.today()
     start_date = end_date - datetime.timedelta(days=600) 
     
