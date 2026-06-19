@@ -2,9 +2,8 @@ name: NIFTY Momentum Scanner
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: '0 14 * * *'
 
+    
 jobs:
   scan:
     runs-on: ubuntu-latest
