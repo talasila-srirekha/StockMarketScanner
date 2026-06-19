@@ -107,7 +107,7 @@ def send_telegram_message(df):
         return
 
     # Use 'simple' format for Telegram as it renders best on mobile devices
-    table_string = tabulate(df, headers='keys', tablefmt='simple', showindex=True)
+    table_string = tabulate(df, headers='keys', tablefmt='simple', showindex=False)
     message_text = f"<b>🚨 NIFTY 500: 220-DMA Crossovers (Last 3 Days)</b>\n\n<pre>{table_string}</pre>"
     
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
@@ -133,7 +133,8 @@ def main():
         
     all_results = []
     batch_size = 50
-    end_date = datetime.date.today()
+    #end_date = datetime.date.today()
+    end_date = datetime.date.today() + datetime.timedelta(days=1)
     start_date = end_date - datetime.timedelta(days=600) 
     
     print(f"Total Tickers Found: {len(tickers)}")

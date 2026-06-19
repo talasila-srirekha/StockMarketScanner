@@ -141,7 +141,8 @@ def main():
         
     all_results = []
     batch_size = 50
-    end_date = datetime.date.today()
+    end_date = datetime.date.today() + datetime.timedelta(days=1)
+    #end_date = datetime.date.today()
     start_date = end_date - datetime.timedelta(days=600) 
     
     print(f"Total Tickers Found: {len(tickers)}")
