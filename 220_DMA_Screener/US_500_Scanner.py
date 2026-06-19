@@ -168,7 +168,7 @@ def send_telegram_message(df):
         maxcolwidths=[10, 5, 7, 5, 4] # Maximum characters allowed per column
     )
     
-    message_text = f"<b>🚨 NIFTY 500: 220-DMA (Last 3 Days)</b>\n\n<pre>{table_string}</pre>"
+    message_text = f"<b>🚨 S&P 500: 220-DMA Crossovers (Last 3 Days)</b>\n\n<pre>{table_string}</pre>"
     
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
