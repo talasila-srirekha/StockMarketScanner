@@ -1,10 +1,10 @@
+
 import yfinance as yf
 import pandas as pd
 import numpy as np
 import time
 import datetime
 import requests
-import io
 import os
 
 # ==========================================
@@ -29,20 +29,23 @@ def send_telegram_message(message, token, chat_id):
     except Exception as e:
         print(f"Failed to send to Telegram: {e}")
 
-def get_nifty500_tickers():
-    """Fetches the latest Nifty 500 list from the official NiftyIndices website."""
-    print("Fetching Nifty 500 ticker list...")
-    url = "https://niftyindices.com/IndexConstituent/ind_nifty500list.csv"
+def get_sp500_tickers():
+    """Fetches the latest S&P 500 list from Wikipedia."""
+    print("Fetching S&P 500 ticker list...")
+    url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
     headers = {'User-Agent': 'Mozilla/5.0'}
 
     try:
-        response = requests.get(url, headers=headers)
-        df = pd.read_csv(io.StringIO(response.text))
-        return [f"{symbol}.NS" for symbol in df['Symbol'].tolist()]
+        tables = pd.read_html(url, storage_options={'User-Agent': headers['User-Agent']})
+        df = tables[0]
+        # yfinance uses '-' instead of '.' for share classes, e.g. BRK.B -> BRK-B
+        tickers = [str(s).replace('.', '-') for s in df['Symbol'].tolist()]
+        return tickers
     except Exception as e:
         print(f"Could not download ticker list: {e}")
-        return ["MGL.NS", "ASHOKLEY.NS", "DLF.NS", "3MINDIA.NS", "HDFCBANK.NS",
-                "RELIANCE.NS", "TCS.NS", "INFY.NS", "ICICIBANK.NS", "SBIN.NS"]
+        # Fallback list just in case Wikipedia is unreachable
+        return ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "META", "TSLA",
+                "JPM", "V", "UNH"]
 
 def scan_dual_timeframe(tickers, batch_size=50):
     signals = []
@@ -58,6 +61,8 @@ def scan_dual_timeframe(tickers, batch_size=50):
         print(f"Scanning Batch {(i // batch_size) + 1}/{total_batches} ({len(batch)} stocks)...")
 
         data = yf.download(batch, start=start_date, end=end_date, group_by='ticker', progress=False, auto_adjust=False)
+
+        #print (data)
 
         if data.empty:
             continue
@@ -117,9 +122,9 @@ def scan_dual_timeframe(tickers, batch_size=50):
     return pd.DataFrame(signals)
 
 if __name__ == "__main__":
-    print("--- High Probability Dual-Timeframe Scanner (Fixed) ---")
+    print("--- High Probability Dual-Timeframe Scanner (S&P 500) ---")
 
-    tickers_to_scan = get_nifty500_tickers()
+    tickers_to_scan = get_sp500_tickers()
 
     if tickers_to_scan:
         print(f"\nSuccessfully loaded {len(tickers_to_scan)} tickers. Beginning scan...\n")
@@ -129,9 +134,9 @@ if __name__ == "__main__":
             min_dist = 1.0
             max_dist = 7.0
 
-            # FIX: bound BOTH % From DMA and % From WMA, not just WMA.
-            # This is what was missing before -> BANDHANBNK (28% above DMA)
-            # was passing because only the WMA distance was being checked.
+            # Both % From DMA and % From WMA must independently sit in the
+            # 1-7% band - this is what prevents stocks that are way above
+            # one MA (e.g. 28%) but only barely above the other from slipping in.
             holy_grail_setups = results[
                 (results['Above Daily DMA?'] == 'Yes') &
                 (results['Above Weekly WMA?'] == 'Yes') &
@@ -147,13 +152,12 @@ if __name__ == "__main__":
             print(f"   - Closed Above 220 Weekly WMA (by {min_dist}%-{max_dist}%)")
             print("=" * 95)
 
-            telegram_msg = "<b>🚀 Cross Over 220 DMA & WMA Setup:</b>\n\n"
+            telegram_msg = "<b>🚀 S&P 500 - Cross Over 220 DMA & WMA Setup:</b>\n\n"
 
             if not holy_grail_setups.empty:
                 holy_grail_setups = holy_grail_setups.sort_values(by='% From WMA')
                 print(holy_grail_setups[['Ticker', 'Current Price', '220 DMA', '220 WMA', '% From DMA', '% From WMA']].to_string(index=False))
                 telegram_msg += "<pre>" + holy_grail_setups[['Ticker', 'Current Price', '% From DMA', '% From WMA']].to_string(index=False) + "</pre>"
-                
             else:
                 print("No stocks match these strict criteria right now.")
                 telegram_msg += "<pre> No stocks match these strict criteria right now.</pre>"
@@ -161,4 +165,3 @@ if __name__ == "__main__":
             send_telegram_message(telegram_msg, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)
         else:
             print("\nNo valid data found. Check your internet connection or stock tickers.")
-        
