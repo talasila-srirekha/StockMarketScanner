@@ -147,7 +147,7 @@ if __name__ == "__main__":
             print(f"   - Closed Above 220 Weekly WMA (by {min_dist}%-{max_dist}%)")
             print("=" * 95)
 
-            telegram_msg = "<b>🚀 Cross Over 220 DMA & WMA Setup:</b>\n\n"
+            telegram_msg = "<b>🚀 NSE - Cross Over 220 DMA & WMA Setup:</b>\n\n"
 
             if not holy_grail_setups.empty:
                 holy_grail_setups = holy_grail_setups.sort_values(by='% From WMA')
